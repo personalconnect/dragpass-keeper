@@ -1,0 +1,5 @@
+output/
+*-blindfold-keeper
+build_root/
+.DS_Store
+.vscode
