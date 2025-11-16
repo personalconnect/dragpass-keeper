@@ -1,15 +1,15 @@
 VERSION := 1.0
 EXTENSION_ID := cmgjlocmnppfpknaipdfodjhbplnhimk
-PKG_IDENTIFIER := com.blindfold.keeper.pkg
+PKG_IDENTIFIER := com.dragpass.keeper.pkg
 
-MAC_BIN := mac-blindfold-keeper
+MAC_BIN := mac-dragpass-keeper
 MAC_PKG_DIR := output/macos
-MAC_PKG := $(MAC_PKG_DIR)/Blindfold-Keeper.pkg
-MAC_JSON_TPL := build_root/Library/Application\ Support/Google/Chrome/NativeMessagingHosts/com.blindfold.keeper.json
+MAC_PKG := $(MAC_PKG_DIR)/Dragpass-Keeper.pkg
+MAC_JSON_TPL := build_root/Library/Application\ Support/Google/Chrome/NativeMessagingHosts/com.dragpass.keeper.json
 
-WIN_BIN := win-blindfold-keeper.exe
+WIN_BIN := win-dragpass-keeper.exe
 WIN_PKG_DIR := output/windows
-WIN_PKG := $(WIN_PKG_DIR)/Blindfold-Keeper.exe
+WIN_PKG := $(WIN_PKG_DIR)/Dragpass-Keeper.exe
 # Go 크로스 컴파일용 Windows 컴파일러
 WIN_CC := x86_64-w64-mingw32-gcc
 
@@ -37,10 +37,10 @@ pkg-macos: $(MAC_PKG)
 $(MAC_PKG): $(MAC_BIN)
 	@echo "Creating macOS package structure in ./build_root..."
 	@rm -rf build_root
-	@mkdir -p build_root/Library/Application\ Support/Blindfold
+	@mkdir -p build_root/Library/Application\ Support/Dragpass
 	@mkdir -p build_root/Library/Application\ Support/Google/Chrome/NativeMessagingHosts	
-	@cp $(MAC_BIN) build_root/Library/Application\ Support/Blindfold/
-	@echo "{\n  \"name\": \"com.blindfold.keeper\",\n  \"description\": \"Blindfold Device Key Storage\",\n  \"path\": \"/Library/Application Support/Blindfold/$(MAC_BIN)\",\n  \"type\": \"stdio\",\n  \"allowed_origins\": [\n    \"chrome-extension://$(EXTENSION_ID)/\"\n  ]\n}" > $(MAC_JSON_TPL)
+	@cp $(MAC_BIN) build_root/Library/Application\ Support/Dragpass/
+	@echo "{\n  \"name\": \"com.dragpass.keeper\",\n  \"description\": \"Dragpass Device Key Storage\",\n  \"path\": \"/Library/Application Support/Dragpass/$(MAC_BIN)\",\n  \"type\": \"stdio\",\n  \"allowed_origins\": [\n    \"chrome-extension://$(EXTENSION_ID)/\"\n  ]\n}" > $(MAC_JSON_TPL)
 	
 	@echo "Creating output directory: $(MAC_PKG_DIR)..."
 	@mkdir -p $(MAC_PKG_DIR)
@@ -74,7 +74,7 @@ endif
 	@echo "Uploading artifacts to GitHub Release..."
 	@gh release create $(TAG) \
 	--title "Release $(TAG)" \
-	--notes "Release $(TAG) of Blindfold Keeper" \
+	--notes "Release $(TAG) of Dragpass Keeper" \
 	$(MAC_PKG) \
 	$(WIN_PKG)
 

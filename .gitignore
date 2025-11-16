@@ -1,5 +1,5 @@
 output/
-*-blindfold-keeper
+*-dragpass-keeper
 *.exe
 build_root/
 .DS_Store

@@ -1,4 +1,4 @@
-module github.com/personalconnect/blindfold-keeper
+module github.com/personalconnect/dragpass-keeper
 
 go 1.25.0
 
