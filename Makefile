@@ -210,7 +210,7 @@ endif
 	@CHECKSUMS_CONTENT=$$(cat $(CHECKSUMS_FILE)); \
 	echo "Uploading artifacts to GitHub Release..."; \
 	gh release create $(TAG) \
-	--title "$(TAG)" \
+	--title "Release version: $(TAG)" \
 	--generate-notes \
 	--notes "$$CHECKSUMS_CONTENT" \
 	$(MAC_PKG_AMD64) $(MAC_SIG_AMD64) \
