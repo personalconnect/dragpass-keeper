@@ -213,7 +213,7 @@ endif
 	else \
 		git log --pretty=format:"%h - %s" $$PREV_TAG..$(TAG) > /tmp/release_changes.txt; \
 	fi; \
-	echo "Changes:" > /tmp/release_notes.txt; \
+	echo "# Changes:" > /tmp/release_notes.txt; \
 	cat /tmp/release_changes.txt >> /tmp/release_notes.txt; \
 	echo "" >> /tmp/release_notes.txt; \
 	cat $(CHECKSUMS_FILE) >> /tmp/release_notes.txt; \
