@@ -2,30 +2,30 @@ VERSION := 1.0
 EXTENSION_ID := cmgjlocmnppfpknaipdfodjhbplnhimk
 PKG_IDENTIFIER := com.dragpass.keeper.pkg
 
-MAC_BIN := dragpass-keeper-macos
+MAC_BIN_AMD64 := dragpass-keeper-macos-x86_64
+MAC_BIN_ARM64 := dragpass-keeper-macos-arm64
 MAC_PKG_DIR := output/macos
-MAC_PKG := $(MAC_PKG_DIR)/dragpass-keeper-macos-arm64.pkg
-MAC_JSON_TPL := build_root/Library/Application\ Support/Google/Chrome/NativeMessagingHosts/com.dragpass.keeper.json
+MAC_PKG_AMD64 := $(MAC_PKG_DIR)/dragpass-keeper-macos-x86_64.pkg
+MAC_PKG_ARM64 := $(MAC_PKG_DIR)/dragpass-keeper-macos-arm64.pkg
 
 WIN_BIN := dragpass-keeper.exe
 WIN_PKG_DIR := output/windows
 WIN_PKG := $(WIN_PKG_DIR)/dragpass-keeper.exe
-# Go 크로스 컴파일용 Windows 컴파일러
-WIN_CC := x86_64-w64-mingw32-gcc
+WIN_CC := x86_64-w64-mingw32-gcc # Go 크로스 컴파일용 Windows 컴파일러
 
 LINUX_BIN_AMD64 := dragpass-keeper-linux-x86_64
 LINUX_BIN_ARM64 := dragpass-keeper-linux-arm64
 LINUX_PKG_DIR := output/linux
-LINUX_DEB_AMD64 := $(LINUX_PKG_DIR)/dragpass-keeper-x86_64.deb
-LINUX_DEB_ARM64 := $(LINUX_PKG_DIR)/dragpass-keeper-arm64.deb
+LINUX_DEB_AMD64 := $(LINUX_PKG_DIR)/dragpass-keeper-linux-x86_64.deb
+LINUX_DEB_ARM64 := $(LINUX_PKG_DIR)/dragpass-keeper-linux-arm64.deb
 
-# Signature files
-MAC_SIG := $(MAC_PKG).sig
+MAC_SIG_AMD64 := $(MAC_PKG_AMD64).sig
+MAC_SIG_ARM64 := $(MAC_PKG_ARM64).sig
 WIN_SIG := $(WIN_PKG).sig
 LINUX_SIG_AMD64 := $(LINUX_DEB_AMD64).sig
 LINUX_SIG_ARM64 := $(LINUX_DEB_ARM64).sig
 
-.PHONY: all build pkg clean build-macos build-windows build-linux build-linux-amd64 build-linux-arm64 pkg-macos pkg-windows pkg-linux pkg-linux-amd64 pkg-linux-arm64 sign release
+.PHONY: all build pkg clean build-macos build-macos-amd64 build-macos-arm64 build-windows build-linux build-linux-amd64 build-linux-arm64 pkg-macos pkg-macos-amd64 pkg-macos-arm64 pkg-windows pkg-linux pkg-linux-amd64 pkg-linux-arm64 sign release
 
 all: build pkg
 
@@ -35,10 +35,17 @@ build: build-macos build-windows build-linux
 pkg: pkg-macos pkg-windows pkg-linux
 	@echo "All installers packaged."
 
-build-macos: $(MAC_BIN)
-$(MAC_BIN): main.go go.mod
-	@echo "Building macOS binary: $(MAC_BIN)..."
-	@go build -o $(MAC_BIN) .
+build-macos: build-macos-amd64 build-macos-arm64
+
+build-macos-amd64: $(MAC_BIN_AMD64)
+$(MAC_BIN_AMD64): main.go go.mod
+	@echo "Building macOS x86_64 binary: $(MAC_BIN_AMD64)..."
+	@GOOS=darwin GOARCH=amd64 go build -o $(MAC_BIN_AMD64) .
+
+build-macos-arm64: $(MAC_BIN_ARM64)
+$(MAC_BIN_ARM64): main.go go.mod
+	@echo "Building macOS arm64 binary: $(MAC_BIN_ARM64)..."
+	@GOOS=darwin GOARCH=arm64 go build -o $(MAC_BIN_ARM64) .
 
 build-windows: $(WIN_BIN)
 $(WIN_BIN): main.go go.mod
@@ -57,24 +64,45 @@ $(LINUX_BIN_ARM64): main.go go.mod
 	@echo "Building Linux arm64 binary: $(LINUX_BIN_ARM64)..."
 	@CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o $(LINUX_BIN_ARM64) .
 
-pkg-macos: $(MAC_PKG)
-$(MAC_PKG): $(MAC_BIN)
-	@echo "Creating macOS package structure in ./build_root..."
-	@rm -rf build_root
-	@mkdir -p build_root/Library/Application\ Support/DragPass
-	@mkdir -p build_root/Library/Application\ Support/Google/Chrome/NativeMessagingHosts	
-	@cp $(MAC_BIN) build_root/Library/Application\ Support/DragPass/
-	@echo "{\n  \"name\": \"com.dragpass.keeper\",\n  \"description\": \"DragPass Device Key Storage\",\n  \"path\": \"/Library/Application Support/DragPass/$(MAC_BIN)\",\n  \"type\": \"stdio\",\n  \"allowed_origins\": [\n    \"chrome-extension://$(EXTENSION_ID)/\"\n  ]\n}" > $(MAC_JSON_TPL)
-	
+pkg-macos: pkg-macos-amd64 pkg-macos-arm64
+
+pkg-macos-amd64: $(MAC_PKG_AMD64)
+$(MAC_PKG_AMD64): $(MAC_BIN_AMD64)
+	@echo "Creating macOS x86_64 package structure in ./build_root_macos_amd64..."
+	@rm -rf build_root_macos_amd64
+	@mkdir -p build_root_macos_amd64/Library/Application\ Support/DragPass
+	@mkdir -p build_root_macos_amd64/Library/Application\ Support/Google/Chrome/NativeMessagingHosts
+	@cp $(MAC_BIN_AMD64) build_root_macos_amd64/Library/Application\ Support/DragPass/dragpass-keeper
+	@echo "{\n  \"name\": \"com.dragpass.keeper\",\n  \"description\": \"DragPass Device Key Storage\",\n  \"path\": \"/Library/Application Support/DragPass/dragpass-keeper\",\n  \"type\": \"stdio\",\n  \"allowed_origins\": [\n    \"chrome-extension://$(EXTENSION_ID)/\"\n  ]\n}" > build_root_macos_amd64/Library/Application\ Support/Google/Chrome/NativeMessagingHosts/com.dragpass.keeper.json
+
 	@echo "Creating output directory: $(MAC_PKG_DIR)..."
 	@mkdir -p $(MAC_PKG_DIR)
 
-	@echo "Building macOS package: $(MAC_PKG)..."
-	@pkgbuild --root ./build_root \
+	@echo "Building macOS x86_64 package: $(MAC_PKG_AMD64)..."
+	@pkgbuild --root ./build_root_macos_amd64 \
             --identifier $(PKG_IDENTIFIER) \
             --version $(VERSION) \
-            $(MAC_PKG)
-	@echo "Successfully built $(MAC_PKG)"
+            $(MAC_PKG_AMD64)
+	@echo "Successfully built $(MAC_PKG_AMD64)"
+
+pkg-macos-arm64: $(MAC_PKG_ARM64)
+$(MAC_PKG_ARM64): $(MAC_BIN_ARM64)
+	@echo "Creating macOS arm64 package structure in ./build_root_macos_arm64..."
+	@rm -rf build_root_macos_arm64
+	@mkdir -p build_root_macos_arm64/Library/Application\ Support/DragPass
+	@mkdir -p build_root_macos_arm64/Library/Application\ Support/Google/Chrome/NativeMessagingHosts
+	@cp $(MAC_BIN_ARM64) build_root_macos_arm64/Library/Application\ Support/DragPass/dragpass-keeper
+	@echo "{\n  \"name\": \"com.dragpass.keeper\",\n  \"description\": \"DragPass Device Key Storage\",\n  \"path\": \"/Library/Application Support/DragPass/dragpass-keeper\",\n  \"type\": \"stdio\",\n  \"allowed_origins\": [\n    \"chrome-extension://$(EXTENSION_ID)/\"\n  ]\n}" > build_root_macos_arm64/Library/Application\ Support/Google/Chrome/NativeMessagingHosts/com.dragpass.keeper.json
+
+	@echo "Creating output directory: $(MAC_PKG_DIR)..."
+	@mkdir -p $(MAC_PKG_DIR)
+
+	@echo "Building macOS arm64 package: $(MAC_PKG_ARM64)..."
+	@pkgbuild --root ./build_root_macos_arm64 \
+            --identifier $(PKG_IDENTIFIER) \
+            --version $(VERSION) \
+            $(MAC_PKG_ARM64)
+	@echo "Successfully built $(MAC_PKG_ARM64)"
 
 pkg-windows: $(WIN_PKG)
 $(WIN_PKG): $(WIN_BIN) setup.iss
@@ -132,8 +160,10 @@ sign:
 		echo "Error: gpg is not installed. Please install GPG to sign releases."; \
 		exit 1; \
 	fi
-	@echo "Signing macOS package..."
-	@gpg --detach-sign --output $(MAC_SIG) $(MAC_PKG)
+	@echo "Signing macOS x86_64 package..."
+	@gpg --detach-sign --output $(MAC_SIG_AMD64) $(MAC_PKG_AMD64)
+	@echo "Signing macOS arm64 package..."
+	@gpg --detach-sign --output $(MAC_SIG_ARM64) $(MAC_PKG_ARM64)
 	@echo "Signing Windows installer..."
 	@gpg --detach-sign --output $(WIN_SIG) $(WIN_PKG)
 	@echo "Signing Linux x86_64 package..."
@@ -144,8 +174,8 @@ sign:
 
 clean:
 	@echo "Cleaning up build artifacts..."
-	@rm -f $(MAC_BIN) $(WIN_BIN) $(LINUX_BIN_AMD64) $(LINUX_BIN_ARM64)
-	@rm -rf build_root build_root_linux_amd64 build_root_linux_arm64 output
+	@rm -f $(MAC_BIN_AMD64) $(MAC_BIN_ARM64) $(WIN_BIN) $(LINUX_BIN_AMD64) $(LINUX_BIN_ARM64)
+	@rm -rf build_root_macos_amd64 build_root_macos_arm64 build_root build_root_linux_amd64 build_root_linux_arm64 output
 
 release: pkg sign
 ifndef TAG
@@ -159,7 +189,8 @@ endif
 	@gh release create $(TAG) \
 	--title "$(TAG)" \
 	--notes "Release $(TAG) of Dragpass Keeper\n\n## Verification\n\nYou can verify the integrity of downloaded files using GPG:\n\`\`\`bash\ngpg --verify <filename>.sig <filename>\n\`\`\`" \
-	$(MAC_PKG) $(MAC_SIG) \
+	$(MAC_PKG_AMD64) $(MAC_SIG_AMD64) \
+	$(MAC_PKG_ARM64) $(MAC_SIG_ARM64) \
 	$(WIN_PKG) $(WIN_SIG) \
 	$(LINUX_DEB_AMD64) $(LINUX_SIG_AMD64) \
 	$(LINUX_DEB_ARM64) $(LINUX_SIG_ARM64)
