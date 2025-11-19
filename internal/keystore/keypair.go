@@ -1,8 +1,10 @@
 package keystore
 
 import (
+	"crypto"
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/sha256"
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
@@ -99,4 +101,18 @@ func PublicKeyToPEM(publicKey *rsa.PublicKey) (string, error) {
 	})
 
 	return string(publicKeyPEM), nil
+}
+
+// VerifySignature verifies the signature of the challenge token using the server's public key
+func VerifySignature(publicKey *rsa.PublicKey, challengeToken string, signature []byte) error {
+	// Hash the challenge token using SHA-256
+	hashed := sha256.Sum256([]byte(challengeToken))
+
+	// Verify the signature
+	err := rsa.VerifyPKCS1v15(publicKey, crypto.SHA256, hashed[:], signature)
+	if err != nil {
+		return fmt.Errorf("signature verification failed: %v", err)
+	}
+
+	return nil
 }

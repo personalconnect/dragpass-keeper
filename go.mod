@@ -2,7 +2,10 @@ module github.com/personalconnect/dragpass-keeper
 
 go 1.25.0
 
-require github.com/zalando/go-keyring v0.2.6
+require (
+	github.com/golang-jwt/jwt/v4 v4.5.2
+	github.com/zalando/go-keyring v0.2.6
+)
 
 require (
 	al.essio.dev/pkg/shellescape v1.5.1 // indirect

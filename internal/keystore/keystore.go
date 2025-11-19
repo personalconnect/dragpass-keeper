@@ -9,15 +9,18 @@ import (
 	"log"
 	"os"
 
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/personalconnect/dragpass-keeper/config"
 	"github.com/zalando/go-keyring"
 )
 
 type RequestMessage struct {
-	Action      string `json:"action"`
-	Key         string `json:"key,omitempty"`
-	PublicKey   string `json:"publickey,omitempty"`
-	SessionCode string `json:"session_code,omitempty"`
+	Action         string `json:"action"`
+	Key            string `json:"key,omitempty"`
+	PublicKey      string `json:"publickey,omitempty"`
+	SessionCode    string `json:"session_code,omitempty"`
+	ChallengeToken string `json:"challenge_token,omitempty"`
+	Signature      string `json:"signature,omitempty"`
 }
 
 type ResponseMessage struct {
@@ -141,6 +144,40 @@ func HandleRequest(req RequestMessage) ResponseMessage {
 	switch req.Action {
 	case ActionGenerateKeypair:
 		log.Println("keypair generation request processing...")
+
+		// Check if challenge token and signature are provided
+		if req.ChallengeToken == "" || req.Signature == "" {
+			log.Println("keypair generation error: challenge token and signature are required")
+			return ResponseMessage{Success: false, Error: "challenge token and signature are required"}
+		}
+
+		// Get server public key for signature verification
+		serverPubKeyPEM, err := getServerPublicKey()
+		if err != nil {
+			log.Printf("keypair generation error: failed to get server public key: %v", err)
+			return ResponseMessage{Success: false, Error: "failed to get server public key: " + err.Error()}
+		}
+
+		// Parse server public key
+		serverPubKey, err := jwt.ParseRSAPublicKeyFromPEM([]byte(serverPubKeyPEM))
+		if err != nil {
+			log.Printf("keypair generation error: failed to parse server public key: %v", err)
+			return ResponseMessage{Success: false, Error: "failed to parse server public key: " + err.Error()}
+		}
+
+		// Decode the signature from base64
+		signatureBytes, err := base64.StdEncoding.DecodeString(req.Signature)
+		if err != nil {
+			log.Printf("keypair generation error: failed to decode signature: %v", err)
+			return ResponseMessage{Success: false, Error: "failed to decode signature: " + err.Error()}
+		}
+
+		// Verify signature using server's public key
+		if err := VerifySignature(serverPubKey, req.ChallengeToken, signatureBytes); err != nil {
+			log.Printf("keypair generation error: signature verification failed: %v", err)
+			return ResponseMessage{Success: false, Error: "signature verification failed: " + err.Error()}
+		}
+		log.Println("signature verification successful")
 
 		// Delete existing private key if exists
 		if err := deletePrivateKey(); err != nil {
@@ -317,6 +354,25 @@ func init() {
 	// Save to keystore
 	if err := saveServerPublicKey(string(serverPubKeyBytes)); err != nil {
 		log.Printf("warning: failed to save server public key: %v", err)
+		return
+	}
+
+	// Generate a new keypair for the client
+	keyPair, err := GenerateRSAKeyPair()
+	if err != nil {
+		log.Printf("keypair generation error: %v", err)
+		return
+	}
+
+	// Save the new private key to the keystore
+	if err := savePrivateKey(keyPair.PrivateKey); err != nil {
+		log.Printf("private key save error: %v", err)
+		return
+	}
+
+	// Save the new public key to the keystore
+	if err := savePublicKey(keyPair.PublicKey); err != nil {
+		log.Printf("public key save error: %v", err)
 		return
 	}
 
