@@ -15,6 +15,7 @@ type KeyPair struct {
 	PublicKey  string `json:"public_key"`
 }
 
+// GenerateRSAKeyPair generates a new RSA key pair and returns it in PEM format
 func GenerateRSAKeyPair() (*KeyPair, error) {
 	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
@@ -51,6 +52,7 @@ func GenerateRSAKeyPair() (*KeyPair, error) {
 	}, nil
 }
 
+// ParsePrivateKey parses a PEM encoded private key
 func ParsePrivateKey(privateKeyPEM string) (*rsa.PrivateKey, error) {
 	block, _ := pem.Decode([]byte(privateKeyPEM))
 	if block == nil {
@@ -70,6 +72,7 @@ func ParsePrivateKey(privateKeyPEM string) (*rsa.PrivateKey, error) {
 	return privateKey, nil
 }
 
+// ParsePublicKey parses a PEM encoded public key
 func ParsePublicKey(publicKeyPEM string) (*rsa.PublicKey, error) {
 	block, _ := pem.Decode([]byte(publicKeyPEM))
 	if block == nil {
@@ -89,6 +92,7 @@ func ParsePublicKey(publicKeyPEM string) (*rsa.PublicKey, error) {
 	return publicKey, nil
 }
 
+// PublicKeyToPEM converts a public key to PEM format
 func PublicKeyToPEM(publicKey *rsa.PublicKey) (string, error) {
 	publicKeyDER, err := x509.MarshalPKIXPublicKey(publicKey)
 	if err != nil {
@@ -115,4 +119,29 @@ func VerifySignature(publicKey *rsa.PublicKey, challengeToken string, signature 
 	}
 
 	return nil
+}
+
+// SignData signs the given data using the provided private key
+func SignData(privateKey *rsa.PrivateKey, data string) ([]byte, error) {
+	// Hash the data using SHA-256
+	hashed := sha256.Sum256([]byte(data))
+
+	// Sign the hashed data
+	signature, err := rsa.SignPKCS1v15(rand.Reader, privateKey, crypto.SHA256, hashed[:])
+	if err != nil {
+		return nil, fmt.Errorf("failed to sign data: %v", err)
+	}
+
+	return signature, nil
+}
+
+// DecryptData decrypts the given encrypted data using the provided private key
+func DecryptData(privateKey *rsa.PrivateKey, encryptedData []byte) ([]byte, error) {
+	// Decrypt the data using RSA OAEP
+	decryptedData, err := rsa.DecryptOAEP(sha256.New(), rand.Reader, privateKey, encryptedData, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decrypt data: %v", err)
+	}
+
+	return decryptedData, nil
 }
