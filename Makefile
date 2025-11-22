@@ -182,13 +182,23 @@ checksums:
 	@echo "" >> $(CHECKSUMS_FILE)
 	@echo "| Filename | SHA256 |" >> $(CHECKSUMS_FILE)
 	@echo "|----------|--------|" >> $(CHECKSUMS_FILE)
-	@for file in $(MAC_PKG_AMD64) $(MAC_SIG_AMD64) $(MAC_PKG_ARM64) $(MAC_SIG_ARM64) $(WIN_PKG) $(WIN_SIG) $(LINUX_DEB_AMD64) $(LINUX_SIG_AMD64) $(LINUX_DEB_ARM64) $(LINUX_SIG_ARM64); do \
+
+	@for file in \
+		$(MAC_BIN_AMD64) $(MAC_BIN_ARM64) \
+		$(WIN_BIN) \
+		$(LINUX_BIN_AMD64) $(LINUX_BIN_ARM64) \
+		$(MAC_PKG_AMD64) $(MAC_SIG_AMD64) \
+		$(MAC_PKG_ARM64) $(MAC_SIG_ARM64) \
+		$(WIN_PKG) $(WIN_SIG) \
+		$(LINUX_DEB_AMD64) $(LINUX_SIG_AMD64) \
+		$(LINUX_DEB_ARM64) $(LINUX_SIG_ARM64); do \
 		if [ -f "$$file" ]; then \
 			filename=$$(basename "$$file"); \
 			hash=$$(shasum -a 256 "$$file" | awk '{print $$1}'); \
 			echo "| $$filename | $$hash |" >> $(CHECKSUMS_FILE); \
 		fi \
 	done
+
 	@echo "" >> $(CHECKSUMS_FILE)
 	@echo "Checksums written to $(CHECKSUMS_FILE)"
 	@cat $(CHECKSUMS_FILE)
