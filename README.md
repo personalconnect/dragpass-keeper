@@ -156,7 +156,7 @@ Check if the DragPass Keeper is running and responsive.
 {
   "success": true,
   "data": {
-    "version": "0.0.4",    
+    "version": "0.0.5",
     "hash": "binary_sha256_hash",
     "path": "/path/to/dragpass-keeper"
   }
