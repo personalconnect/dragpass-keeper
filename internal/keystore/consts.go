@@ -21,6 +21,7 @@ const (
 	ActionSignChallengeToken     = "signchallengetoken"
 
 	// related to login on another device
-	ActionGenerateKeypair = "generatekeypair"
-	ActionGetPublicKey    = "getpublickey"
+	ActionGenerateKeypair    = "generatekeypair"
+	ActionGetPublicKey       = "getpublickey"
+	ActionGetServerPublicKey = "getserverpubkey"
 )

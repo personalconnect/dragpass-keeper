@@ -207,6 +207,18 @@ func HandleGetPublicKey(req GetPublicKeyRequest) BaseResponse {
 	return BaseResponse{Success: true, Data: GetPublicKeyResponseData{PublicKey: publicKeyPEM}}
 }
 
+// HandleGetServerPublicKey handles server public key retrieval requests
+func HandleGetServerPublicKey(req GetServerPublicKeyRequest) BaseResponse {
+	log.Println("server public key retrieval request processing...")
+	serverPublicKeyPEM, err := getServerPublicKey()
+	if err != nil {
+		log.Printf("server public key retrieval error: %v", err)
+		return BaseResponse{Success: false, Error: "server public key retrieval failed: " + err.Error()}
+	}
+	log.Println("server public key retrieval successful")
+	return BaseResponse{Success: true, Data: GetServerPublicKeyResponseData{PublicKey: serverPublicKeyPEM}}
+}
+
 // HandleSignAlias handles alias signing requests (signup flow)
 func HandleSignAlias(req SignAliasRequest) BaseResponse {
 	log.Println("alias signing request processing...")

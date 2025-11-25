@@ -40,6 +40,9 @@ func HandleRequest(msg []byte) BaseResponse {
 	case ActionGetPublicKey:
 		return process(base.Payload, HandleGetPublicKey)
 
+	case ActionGetServerPublicKey:
+		return process(base.Payload, HandleGetServerPublicKey)
+
 	case ActionSignAlias:
 		return process(base.Payload, HandleSignAlias)
 

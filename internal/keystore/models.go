@@ -15,6 +15,7 @@ type GetDeviceKeyRequest struct{}
 type DeleteDeviceKeyRequest struct{}
 type GetSessionCodeRequest struct{}
 type GetPublicKeyRequest struct{}
+type GetServerPublicKeyRequest struct{}
 type SaveDeviceKeyResponseData struct{}
 type DeleteDeviceKeyResponseData struct{}
 
@@ -125,6 +126,10 @@ type GetSessionCodeResponseData struct {
 }
 
 type GetPublicKeyResponseData struct {
+	PublicKey string `json:"publickey"`
+}
+
+type GetServerPublicKeyResponseData struct {
 	PublicKey string `json:"publickey"`
 }
 
