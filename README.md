@@ -290,6 +290,34 @@ Retrieves the Helper's public key.
 
 ---
 
+#### `getserverpubkey` - Get Server Public Key
+
+Retrieves the server's public key that is stored in the OS keystore.
+
+**Request:**
+```json
+{
+  "action": "getserverpubkey"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "publickey": "-----BEGIN PUBLIC KEY-----\n...\n-----END PUBLIC KEY-----"
+  }
+}
+```
+
+**Notes:**
+- The server public key is hardcoded in the binary and initialized on first run
+- This key is used to verify signatures from the server
+- Stored in OS-native keystore for retrieval
+
+---
+
 ### Session Code Management
 
 #### `savesessioncode` - Save Encrypted Session Code
@@ -495,13 +523,3 @@ Credentials:
 - DeviceKey
 - SessionCode
 ```
-
----
-
-## Security Considerations
-
-1. **Server Public Key**: Hardcoded in the binary and verified during initialization
-2. **Private Key Protection**: Stored only in OS-native encrypted keystores
-3. **Signature Verification**: All server communications are verified using RSA signatures
-4. **Encrypted Transport**: Session codes are encrypted with Helper's public key before transmission
-5. **Time-based Authentication**: Login uses timestamp-based signatures to prevent replay attacks
