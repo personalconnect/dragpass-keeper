@@ -144,7 +144,22 @@ func HandleSaveSessionCode(req SaveSessionCodeRequest) BaseResponse {
 	}
 	log.Println("signature verification successful")
 
-	// Get the Helper's private key from keystore
+	// Try to promote pending keypair to permanent storage
+	// This is safe for both signup and login-on-another-device flows:
+	// - Signup: pending keypair exists, gets promoted ✅
+	// - Login on another device: no pending keypair, nothing happens ✅
+	promoted, err := promotePendingKeypair()
+	if err != nil {
+		log.Printf("session code save error: failed to promote pending keypair: %v", err)
+		return BaseResponse{Success: false, Error: "failed to promote pending keypair: " + err.Error()}
+	}
+	if promoted {
+		log.Println("pending keypair promoted to permanent storage (signup completed)")
+	} else {
+		log.Println("no pending keypair found (login on another device flow)")
+	}
+
+	// Get the Helper's private key from keystore (now permanent after promotion)
 	privateKeyPEM, err := getPrivateKey()
 	if err != nil {
 		log.Printf("session code save error: failed to get private key: %v", err)
@@ -248,20 +263,25 @@ func HandleSignAlias(req SignAliasRequest) BaseResponse {
 		return BaseResponse{Success: false, Error: "keypair generation failed: " + err.Error()}
 	}
 
-	// Save the new private key to the keystore
-	if err := savePrivateKey(keyPair.PrivateKey); err != nil {
-		log.Printf("private key save error: %v", err)
-		return BaseResponse{Success: false, Error: "private key save failed: " + err.Error()}
+	// Save the new keypair to PENDING storage (not active yet)
+	// This will be promoted to active status upon successful session code save
+	if err := savePendingPrivateKey(keyPair.PrivateKey); err != nil {
+		log.Printf("pending private key save error: %v", err)
+		return BaseResponse{Success: false, Error: "pending private key save failed: " + err.Error()}
 	}
 
-	// Save the new public key to the keystore
-	if err := savePublicKey(keyPair.PublicKey); err != nil {
-		log.Printf("public key save error: %v", err)
-		return BaseResponse{Success: false, Error: "public key save failed: " + err.Error()}
+	if err := savePendingPublicKey(keyPair.PublicKey); err != nil {
+		log.Printf("pending public key save error: %v", err)
+		return BaseResponse{Success: false, Error: "pending public key save failed: " + err.Error()}
 	}
+	log.Println("pending keypair generated and saved for signup (awaiting confirmation)")
 
-	log.Println("keypair generated successfully for signup")
-	privateKeyPEM := keyPair.PrivateKey
+	// Get the pending private key we just saved
+	privateKeyPEM, err := getPendingPrivateKey()
+	if err != nil {
+		log.Printf("alias signing error: failed to get pending private key: %v", err)
+		return BaseResponse{Success: false, Error: "failed to get pending private key: " + err.Error()}
+	}
 
 	// Parse the private key
 	privateKey, err := ParsePrivateKey(privateKeyPEM)
@@ -270,7 +290,7 @@ func HandleSignAlias(req SignAliasRequest) BaseResponse {
 		return BaseResponse{Success: false, Error: "failed to parse private key: " + err.Error()}
 	}
 
-	// Sign the alias using the Helper's private key
+	// Sign the alias using the pending private key
 	signatureBytes, err := SignData(privateKey, req.Alias)
 	if err != nil {
 		log.Printf("alias signing error: failed to sign alias: %v", err)
@@ -280,14 +300,14 @@ func HandleSignAlias(req SignAliasRequest) BaseResponse {
 	// Encode the signature to base64
 	signatureBase64 := base64.StdEncoding.EncodeToString(signatureBytes)
 
-	// Get the Helper's public key from keystore
-	publicKeyPEM, err := getPublicKey()
+	// Get the pending public key
+	publicKeyPEM, err := getPendingPublicKey()
 	if err != nil {
-		log.Printf("alias signing error: failed to get public key: %v", err)
-		return BaseResponse{Success: false, Error: "failed to get public key: " + err.Error()}
+		log.Printf("alias signing error: failed to get pending public key: %v", err)
+		return BaseResponse{Success: false, Error: "failed to get pending public key: " + err.Error()}
 	}
 
-	log.Println("alias signing successful")
+	log.Println("alias signing successful with pending keypair")
 	return BaseResponse{Success: true, Data: SignAliasResponseData{Signature: signatureBase64, PublicKey: publicKeyPEM}}
 }
 

@@ -57,3 +57,53 @@ func getSessionCode() (string, error) {
 func deleteSessionCode() error {
 	return keyring.Delete(config.Service, config.SessionCode)
 }
+
+func savePendingPrivateKey(privateKey string) error {
+	return keyring.Set(config.Service, config.PendingDragPassKeeperPrivateKey, privateKey)
+}
+
+func getPendingPrivateKey() (string, error) {
+	return keyring.Get(config.Service, config.PendingDragPassKeeperPrivateKey)
+}
+
+func savePendingPublicKey(publicKey string) error {
+	return keyring.Set(config.Service, config.PendingDragPassKeeperPublicKey, publicKey)
+}
+
+func getPendingPublicKey() (string, error) {
+	return keyring.Get(config.Service, config.PendingDragPassKeeperPublicKey)
+}
+
+func deletePendingPrivateKey() error {
+	return keyring.Delete(config.Service, config.PendingDragPassKeeperPrivateKey)
+}
+
+func deletePendingPublicKey() error {
+	return keyring.Delete(config.Service, config.PendingDragPassKeeperPublicKey)
+}
+
+// promotePendingKeypair moves pending keypair to permanent storage
+func promotePendingKeypair() (bool, error) {
+	pendingPrivateKey, privErr := getPendingPrivateKey()
+	pendingPublicKey, pubErr := getPendingPublicKey()
+
+	// No pending keypair exists
+	if privErr != nil || pubErr != nil {
+		return false, nil
+	}
+
+	// Change status pending to active
+	if err := savePrivateKey(pendingPrivateKey); err != nil {
+		return false, err
+	}
+
+	if err := savePublicKey(pendingPublicKey); err != nil {
+		return false, err
+	}
+
+	// Delete pending keypair
+	_ = deletePendingPrivateKey()
+	_ = deletePendingPublicKey()
+
+	return true, nil
+}
