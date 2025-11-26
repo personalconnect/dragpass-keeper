@@ -225,9 +225,20 @@ func HandleSignAlias(req SignAliasRequest) BaseResponse {
 
 	_, keyErr := getPrivateKey()
 	_, sessionErr := getSessionCode()
+
+	// keypair + session code already exist
 	if keyErr == nil && sessionErr == nil {
 		log.Println("alias signing error: device already registered and session code exists")
 		return BaseResponse{Success: false, Error: "device already registered. this device has already been registered for signup"}
+	}
+
+	// keypair exists but session code is missing
+	if keyErr == nil && sessionErr != nil {
+		log.Println("alias signing error: orphaned keypair detected without session")
+		return BaseResponse{
+			Success: false,
+			Error:   "keypair exists without session. please contact support or use account recovery",
+		}
 	}
 
 	log.Println("generating new keypair for signup...")
