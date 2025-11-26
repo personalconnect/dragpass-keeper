@@ -322,7 +322,7 @@ Retrieves the server's public key that is stored in the OS keystore.
 
 #### `savesessioncode` - Save Encrypted Session Code
 
-Decrypts and stores the session code. Used during signup.
+Promotes pending keypair to permanent storage and saves the session code. Used during both signup and login-on-another-device flows.
 
 **Request:**
 ```json
@@ -347,9 +347,16 @@ Decrypts and stores the session code. Used during signup.
 
 **Process:**
 1. Verifies signature using server's public key
-2. Decrypts the session code using Helper's private key (RSA-OAEP with SHA-256)
-3. Stores the decrypted session code in the OS keystore
-4. Returns the decrypted session code
+2. **Promotes pending keypair to permanent storage** (if exists from signup)
+   - Signup flow: Pending keypair exists → Promoted ✅
+   - Login-on-another-device flow: No pending keypair → Skipped ✅
+3. Decrypts the session code using Helper's private key (RSA-OAEP with SHA-256)
+4. Stores the decrypted session code in the OS keystore
+5. Returns the decrypted session code
+
+**Notes:**
+- This action completes the two-phase commit for signup keypair lifecycle
+- Safe for both signup and login-on-another-device flows
 
 ---
 
@@ -380,7 +387,7 @@ Retrieves the stored session code.
 
 #### `signalias` - Sign User Alias
 
-Signs the user alias with Helper's private key. Used during signup.
+Generates a keypair and signs the user alias. Used during signup. Uses **pending storage** to prevent orphaned keys if signup fails.
 
 **Request:**
 ```json
@@ -404,8 +411,16 @@ Signs the user alias with Helper's private key. Used during signup.
 ```
 
 **Process:**
-1. Signs the alias using Helper's private key (RSA PKCS#1 v1.5 with SHA-256)
-2. Returns the signature and Helper's public key
+1. Checks if device is already registered (keypair + session code exist)
+2. Generates a new RSA-2048 keypair
+3. Stores keypair in **pending storage** (not permanent yet)
+4. Signs the alias using the pending private key (RSA PKCS#1 v1.5 with SHA-256)
+5. Returns the signature and pending public key
+
+**Notes:**
+- Keypair is stored in pending storage and will be promoted to permanent storage by `savesessioncode`
+- If signup fails (e.g., 409 Conflict), the pending keypair can be safely overwritten on retry
+- This prevents orphaned keypairs in the OS keystore when signup fails
 
 ---
 
@@ -494,11 +509,13 @@ Verifies and signs a challenge token. Used for login verification.
 ```
 Service: com.dragpass.keeper
 Items:
-- DragPassServerPublicKey
-- DragPassKeeperPrivateKey
-- DragPassKeeperPublicKey
-- DeviceKey
-- SessionCode
+- server_public_key (DragPassServerPublicKey)
+- keeper_private_key (DragPassKeeperPrivateKey)
+- keeper_public_key (DragPassKeeperPublicKey)
+- pending_keeper_private_key (PendingDragPassKeeperPrivateKey) - Temporary during signup
+- pending_keeper_public_key (PendingDragPassKeeperPublicKey) - Temporary during signup
+- device_key (DeviceKey)
+- session_code (SessionCode)
 ```
 
 **Linux Secret Service:**
@@ -506,20 +523,28 @@ Items:
 Collection: default keyring
 Schema: com.dragpass.keeper
 Items:
-- DragPassServerPublicKey
-- DragPassKeeperPrivateKey
-- DragPassKeeperPublicKey
-- DeviceKey
-- SessionCode
+- server_public_key (DragPassServerPublicKey)
+- keeper_private_key (DragPassKeeperPrivateKey)
+- keeper_public_key (DragPassKeeperPublicKey)
+- pending_keeper_private_key (PendingDragPassKeeperPrivateKey) - Temporary during signup
+- pending_keeper_public_key (PendingDragPassKeeperPublicKey) - Temporary during signup
+- device_key (DeviceKey)
+- session_code (SessionCode)
 ```
 
 **Windows Credential Manager:**
 ```
 Target Prefix: com.dragpass.keeper
 Credentials:
-- DragPassServerPublicKey
-- DragPassKeeperPrivateKey
-- DragPassKeeperPublicKey
-- DeviceKey
-- SessionCode
+- server_public_key (DragPassServerPublicKey)
+- keeper_private_key (DragPassKeeperPrivateKey)
+- keeper_public_key (DragPassKeeperPublicKey)
+- pending_keeper_private_key (PendingDragPassKeeperPrivateKey) - Temporary during signup
+- pending_keeper_public_key (PendingDragPassKeeperPublicKey) - Temporary during signup
+- device_key (DeviceKey)
+- session_code (SessionCode)
 ```
+
+**Notes:**
+- Pending keys are automatically deleted after promotion to permanent storage
+- Pending keys prevent orphaned keys when signup fails (e.g., 409 Conflict errors)
