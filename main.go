@@ -47,6 +47,10 @@ func main() {
 	// Stdout is sent to the Chrome extension, so we log to Stderr
 	log.SetOutput(os.Stderr)
 
+	// For debugging, log to a file
+	// logFile, _ := os.OpenFile("/tmp/keeper.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	// log.SetOutput(logFile)
+
 	if err := keystore.LoadBinaryInfo(); err != nil {
 		log.Printf("Warning: Failed to calculate binary info: %v", err)
 	}
